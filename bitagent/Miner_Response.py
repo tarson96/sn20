@@ -9,9 +9,7 @@ from PalChain import Logical_Initiatoin
 from bitagent.Orca import generate_answer
 summarizer = 0
 
-clf = pipeline('sentiment-analysis',
-               model='IbrahimmiharbI/Bert_Miner',
-               return_all_scores=True)
+clf = 0
 
 # def extract_last_numeric_value(text):
 #     # Define a regular expression pattern to match numeric values (integers and floats)
@@ -110,24 +108,24 @@ def Logic_process(text):
 
 def Miner_Model(text):
     label_names = {0: 'Summary', 1: 'Logic', 2: 'Greets'}
-    output = clf(text)
-    predictions = output[0]
-    summary_score = 0
-    logic_score = 0
-    for prediction in predictions:
-        label_idx = int(prediction['label'].split('_')[-1])
-        label_name = label_names[label_idx]
-        score = prediction['score']
+    # output = clf(text)
+    # predictions = output[0]
+    # summary_score = 0
+    # logic_score = 0
+    # for prediction in predictions:
+    #     label_idx = int(prediction['label'].split('_')[-1])
+    #     label_name = label_names[label_idx]
+    #     score = prediction['score']
 
-        if label_name == 'Summary':
-            summary_score = score
-        elif label_name == 'Logic':
-            logic_score = score
+    #     if label_name == 'Summary':
+    #         summary_score = score
+    #     elif label_name == 'Logic':
+    #         logic_score = score
 
-    if summary_score > logic_score:
-        result = Summary_process(text)
-    elif logic_score > summary_score:
-        result = Logic_process(text)
+    result = Logic_process(text)
+    # if summary_score > logic_score:
+    #     result = Summary_process(text)
+    # elif logic_score > summary_score:
 
     return result
 
