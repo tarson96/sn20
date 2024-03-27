@@ -7,7 +7,7 @@ import spacy
 import re
 from PalChain import Logical_Initiatoin
 from bitagent.Orca import generate_answer
-summarizer = pipeline("summarization", model="philschmid/bart-large-cnn-samsum")
+summarizer = 0
 
 clf = pipeline('sentiment-analysis',
                model='IbrahimmiharbI/Bert_Miner',
