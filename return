@@ -1,0 +1,257 @@
+# Install transformers from source - only needed for versions <= v4.34
+# pip install git+https://github.com/huggingface/transformers.git
+# pip install accelerate
+
+import torch
+from transformers import pipeline
+import os
+import torch
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores import Chroma
+from langchain.embeddings import HuggingFaceBgeEmbeddings
+from langchain.document_loaders import PyPDFLoader
+from reportlab.pdfgen import canvas
+import json
+import aspose.words as aw
+from IPython import get_ipython
+import random
+from tabulate import tabulate
+# import Logical_Q_NA
+
+
+# Check if CUDA is available and set the device accordingly
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class Document:
+    def __init__(self, page_content):
+        self.page_content = page_content
+        self.metadata = {}
+
+
+pipe = pipeline("text-generation", model="HuggingFaceH4/zephyr-7b-beta", torch_dtype=torch.bfloat16, device_map="auto")
+
+model_name = "BAAI/bge-large-en"
+model_kwargs = {'device': device}
+encode_kwargs = {'normalize_embeddings': True}
+embeddings = HuggingFaceBgeEmbeddings(
+    model_name=model_name,
+    model_kwargs=model_kwargs,
+    encode_kwargs=encode_kwargs
+)
+####################################################
+def evaluate_qa(question, answer):
+  """
+  This function evaluates a question-answer pair and assigns a score (0-5).
+
+  Args:
+      question: The question as a string.
+      answer: The answer as a string.
+
+  Returns:
+      A score (int) between 0 and 5:
+          - 0: Answer is completely irrelevant to the question.
+          - 3: Answer shows minimal relevance but lacks detail or explanation.
+          - 4: Answer partially addresses the question but may require further elaboration.
+          - 5: Answer comprehensively addresses the question, demonstrates exceptional quality, clarity, and potentially provides insightful details or elaborations.
+  """
+
+  # Preprocessing (optional): Perform basic text cleaning steps like removing punctuation or stop words.
+
+  # Calculate relevance score (0-2):
+  relevance_score = 0
+  # Implement your logic here to compare the question and answer. This could involve:
+  #   - Matching keywords or named entities
+  #   - Checking for semantic similarity using libraries like NLTK
+  if "relevant_keywords" in question.lower() and "relevant_keywords" in answer.lower():
+      relevance_score = 1  # Basic relevance found
+  if answer.lower().startswith("the answer is") and len(answer) > 15:  # Simple check for answer format
+      relevance_score = 2  # More comprehensive answer structure
+
+  # Calculate quality score (0-3):
+  quality_score = 0
+  # Implement your logic here to assess answer quality. This could involve:
+  #   - Checking for sentence structure and grammar
+  #   - Identifying the presence of explanations or justifications
+  #   - Using libraries for sentiment analysis (if applicable)
+  if len(answer.split()) > 15:  # Check for answer length (basic indicator)
+      quality_score = 1  # Answer has some content
+  if any(w in answer for w in ["because", "therefore", "explain"]):  # Look for indicative words suggesting explanation
+      quality_score = 2  # Answer attempts to explain or justify
+
+  # Combine scores and return final score
+  total_score = relevance_score + quality_score
+  return min(total_score, 5)  # Ensure score stays within the 0-5 range
+
+# Example usage
+question = "What is the capital of France?"
+answer = "The capital of France is Paris."
+score = evaluate_qa(question, answer)
+print(f"Score: {score}")  # Output: Score: 4
+##################################################
+def Json_To_Vector(data):
+    
+    with open(data, 'r') as file:
+        dat = json.load(file)
+    # Now, data holds the contents of your JSON file as a dictionary
+        result_data = dat.get('result')  # Extracting the value associated with the 'result' key
+
+    # print(result_data)
+
+    # Load the JSON data
+    data = json.loads(result_data)
+    List = []
+    # Iterate over each dictionary in the "result" list and print "url" and "text"
+    for item in data:
+      
+        List.append(item["text"])
+
+    Content = ""
+    # passing in a string
+
+    for i in List:
+        Content += i +''
+
+
+    ######
+    # print(f"Content:{Content}")
+   
+    documents = [Document(page_content=Content)]
+    # print(documents)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+
+    texts = text_splitter.split_documents(documents)
+
+
+    # Create Chroma instance without device argument
+    vector_store = Chroma.from_documents(
+        texts,
+        embeddings,
+        collection_metadata={"hnsw:space": "cosine"},
+        persist_directory="stores/Cosine"
+    )
+    # print("3")
+
+def Response(Questions):
+   # Assuming you have a valid 'embeddings' function and 'Questions' dataset
+    persist_directory = "stores/Cosine" if 'google.colab' in str(get_ipython()) else "./stores/Cosine"
+    load_vector_store = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
+
+    # Creating a retriever from the loaded vector store
+    retriever = load_vector_store.as_retriever(search_kwargs={"k": 5}, search_type="similarity")
+
+    # Defining a query (make sure 'Questions' is a valid query)
+    query = Questions
+
+    # Performing a semantic search using the retriever
+    semantic_search = retriever.get_relevant_documents(query)
+
+    # Printing the results of the semantic search
+    # print(semantic_search)
+
+    return semantic_search
+
+# # Defining a query
+# query = "s While yoga can be beneficial, it's important to steer clear of poses that may strain your neck. Instead, concentrate on gentle stretches"
+
+#json data
+Json_To_Vector("text_081938.json")
+##################################################################
+text = []
+# jobs = ['Gardener','Shpokeeper','Actor','Assasin','Cobler']
+
+# table_data = [jobs, *[[random.randint(1,100) for _ in range(len(jobs))] for _ in range(random.randint(3,30))]]
+# table = tabulate(table_data, headers="firstrow", tablefmt='html')
+# ,f'Interchange between addition and multiplication operations for each value within the column labeled  in the provided HTML table. Present only the resulting numerical value without displaying the computation process. For instance, if the column contains values 2, 3, 4, 5, first add, then multiply, then add, yielding ((2+3)*4)+5, resulting in a final value of 25. Table: {table}\n\nThe numercial value for the provided column is:'
+
+questions  = ['Please supply the numerical value indicating the count of unique female pet names within the provided list: Bella, Daisy, Daisy, Luna, Molly, Molly']
+#questions = ['Factorize these expressions by using  4, 5 and 6. in questions: 7abc - 56ac + 49bc^2','','What do you know about blockchains?','what do you know about blockchain?','how much is 2+2(4/2) ?']
+
+
+
+
+Reward_Total = []
+for i in range(len(questions)):
+	
+
+    semantic_search = Response(questions[i])
+   # print(semantic_search)
+    # We use the tokenizer's chat template to format each message - see https://huggingface.co/docs/transformers/main/en/chat_templating
+    messages = [
+         {
+             "role": "system",
+             "content": "I am a large language model trained on a massive dataset of text and code. I can assist you with various vocabulary and mathematics tasks, including definitions, grammar checks, basic arithmetic operations, and solving simple word problems. I am still under development and learning to be more informative and comprehensive in my responses.",
+         },
+         {"role": "user", "content": f" Given the input '{questions[i]}', the task is to understand the context provided by '{semantic_search}' and provide an exact logical answer. If the '{questions[i]}' directly relates to '{semantic_search}', the response should be based on the logical analysis of the provided information. However, if the '{questions[i]}'is unrelated to '{semantic_search}', the model should generate a rational response independently."},
+		{"role":"user","content":f"if a mathematical() question of any type is asked just give the numerical answer to that without mentioning its steps"}
+     ]
+             
+    #messages = [
+     #   {
+      #    "role": "system",
+       #   "content": "I am a versatile assistant, ready to answer your vocabulary and math questions in a natural way. I can provide textual explanations or numerical solutions(only give numerical answer but not the steps), depending on the nature of your query."
+        #},
+        #{
+         # "role": "user",
+          #"content": "My question: {question}"
+        #},
+        #{
+         # "role": "user",
+          #"content": "Additional context: {semantic_search} (optional if it is related)"
+        #}
+      #]
+    prompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    outputs = pipe(prompt, max_new_tokens=256, do_sample=True, temperature=0.7, top_k=50, top_p=0.95)
+    # print(outputs[0]["generated_text"])
+    text = outputs[0]["generated_text"]
+    text = text.split('<|assistant|>')
+    
+    print("Question: ",questions[i])
+    print("Answer: ",text[-1])
+    print("QNA..Logical....................................................................")
+    response = {"response": f"{text[-1]}"}
+    # expected = {"response": f"{text[-1]}"}
+    # reward, max_reward, feedback = Logical_Q_NA.contains_correct_numerical_logic_answer(questions[i], response ,{text[-1]})
+    # print(f"Rewards :{reward}")
+    # print(f"Max_Rewards :{max_reward}")
+    # print(f"Feedback :{feedback}")
+    # print(".............................................................")
+
+    Reward = [
+        {
+          "role": "system",
+          "content": "I am a grader tasked with evaluating the quality of a question-answer pair and score out of 5 with respect to the answer given of the question. Please provide the question and answer for assessment."
+        },
+	    {
+		"role": "system",
+          	"content":"I only have to pass the numerical numbers which will be the score and nothing else in context"
+	    },
+        {
+          "role": "user",
+          "content": "Question: {questions[i]}"
+        },
+        {
+          "role": "user",
+          "content": "Answer: {text[-1]}"
+        },
+        {
+          "role": "system",
+          "content": f"Your score: {evaluate_qa(questions[i], text[-1])} out of 5. Numerical value only."
+        }
+      ]
+    prompt = pipe.tokenizer.apply_chat_template(Reward, tokenize=False, add_generation_prompt=True)
+    outputs = pipe(prompt, max_new_tokens=256, do_sample=True, temperature=0.7, top_k=50, top_p=0.95)
+    # print(outputs[0]["generated_text"])
+    Score = outputs[0]["generated_text"]
+    Score = Score.split('<|system|>')
+
+    # print(Score) 
+    T = f"Your Score Against Question No.{i+1} : {Score} out of 5"
+    Reward_Total.append(T)
+     
+#for i in range(len(Reward_Total)):
+ # print(f"{Reward_Total[i]}")
+
+
+
+    # Call your function and print the results
+  
