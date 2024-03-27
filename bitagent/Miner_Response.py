@@ -106,8 +106,6 @@ def Logic_process(text):
         # print(last_numeric_value)  
         # processed = result
         result = generate_answer(text)
-        # processed = extract_last_numeric_value(result)
-        
         return result
 
 def Miner_Model(text):

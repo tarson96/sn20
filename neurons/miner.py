@@ -89,7 +89,7 @@ class Miner(BaseMinerNeuron):
         """
 
         synapse = self.miner_process(self, synapse)
-
+        print("response synapse --->  ", synapse)
         return synapse
 
     async def forward_for_result(
