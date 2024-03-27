@@ -6,7 +6,7 @@ from fuzzywuzzy import fuzz
 import spacy
 import re
 from PalChain import Logical_Initiatoin
-from Orca import generate_answer
+from bitagent.Orca import generate_answer
 summarizer = pipeline("summarization", model="philschmid/bart-large-cnn-samsum")
 
 clf = pipeline('sentiment-analysis',
