@@ -5,10 +5,11 @@ from awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer
 from sentence_transformers.cross_encoder import CrossEncoder
 import re
+
 model_name_or_path = "TheBloke/Mistral-7B-OpenOrca-AWQ"
+
 tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=False)
-model = AutoAWQForCausalLM.from_quantized(model_name_or_path, fuse_layers=True,
-                                              trust_remote_code=False, safetensors=True)
+model = AutoAWQForCausalLM.from_quantized(model_name_or_path, fuse_layers=True, trust_remote_code=False, safetensors=True)
 
 cross_encoder = CrossEncoder("cross-encoder/stsb-distilroberta-base")
 
